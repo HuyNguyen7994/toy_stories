@@ -96,9 +96,6 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pyenv
-.python-version
-
 # nvm (Node Version Manager)
 .nvmrc
 
