@@ -1,3 +1,6 @@
+# Personal
+/notebooks/data/*
+
 # Airflow configuration
 airflow.cfg
 airflow_login.py
@@ -253,8 +256,8 @@ licenses/LICENSES-ui.txt
 # airflow-build-dockerfile and correconding ignore file
 airflow-build-dockerfile*
 
-# Temporary ignore uv.lock until we integrate it fully in our constraint preparation mechanism
-/uv.lock
-
 # Ignore zip files https://github.com/apache/airflow/issues/46449
 *.zip
+
+# Personal
+!uv.lock
