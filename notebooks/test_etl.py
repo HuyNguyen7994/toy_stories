@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_main():
     from simple_etl import main
 
