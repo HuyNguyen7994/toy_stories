@@ -89,7 +89,7 @@ def main():
     )
     write_result(prices_extracted, Path("data") / "extracted", utc_ts)
     # can we rewrite this in SQL?
-    prices_stats = read_price_history(Path("data") / "extracted")
+    prices_stats = calculate_price(read_price_history(Path("data") / "extracted"))
     write_result(prices_stats, Path("data") / "stats", utc_ts)
 
 

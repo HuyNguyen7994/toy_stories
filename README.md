@@ -14,8 +14,11 @@ uv run ruff check
 uv run pytest
 ```
 
-# Rewrite transformation
-We will migrate the data into cloud database (not sure which), so it's necessary to rewrite most logic into SQL
+# Pandas problem
+My `simple_etl.py` doesn't work and I don't know why.
+
+# Rewrite transformation to SQL
+Historical data is now stored in Redshift, but logic is still written in `pandas`. Need to translate it to SQL.
 
 # Bring it into Airflow
 We will need to run the task from Airflow server and not from local machine
