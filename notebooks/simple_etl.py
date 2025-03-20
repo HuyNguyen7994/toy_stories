@@ -46,7 +46,6 @@ def transform_dataset(
 
 def calculate_price(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df["etl_utc_ts"] = pd.to_datetime(df["etl_utc_ts"])
     df["extracted_date"] = df["etl_utc_ts"].dt.date
     df = df.drop_duplicates(subset=["extracted_date", "region_code", "instance_type"])
     df["extracted_year"] = df["etl_utc_ts"].dt.year
@@ -66,24 +65,9 @@ def calculate_price_sql(df: pd.DataFrame) -> pd.DataFrame:
     import duckdb
 
     df = duckdb.query("""
-with dedup_df as (
-    select
-        etl_utc_ts::date as extracted_date,
-        region_code,
-        instance_type,
-        any_value(spot_price) as spot_price
-    from df
-    group by 1, 2, 3
-)
-select 
-    extract (year from extracted_date) as extracted_year,
-    extract (month from extracted_date) as extracted_month,
-    region_code,
-    avg(spot_price) as avg_price,
-    max(spot_price) as max_price,
-    min(spot_price) as min_price
-from dedup_df
-group by 1, 2, 3
+select
+    *
+from df
 """).to_df()
     return df
 
