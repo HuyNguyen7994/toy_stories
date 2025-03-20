@@ -46,6 +46,7 @@ def transform_dataset(
 
 def calculate_price(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+    df["etl_utc_ts"] = pd.to_datetime(df["etl_utc_ts"])
     df["extracted_date"] = df["etl_utc_ts"].dt.date
     df = df.drop_duplicates(subset=["extracted_date", "region_code", "instance_type"])
     df["extracted_year"] = df["etl_utc_ts"].dt.year
@@ -54,10 +55,36 @@ def calculate_price(df: pd.DataFrame) -> pd.DataFrame:
         by=["extracted_year", "extracted_month", "region_code"],
         as_index=False,
     ).agg(
-        Mean=("spot_price", "mean"),
-        Max=("spot_price", "max"),
-        Min=("spot_price", "min"),
+        avg_price=("spot_price", "mean"),
+        max_price=("spot_price", "max"),
+        min_price=("spot_price", "min"),
     )
+    return df
+
+
+def calculate_price_sql(df: pd.DataFrame) -> pd.DataFrame:
+    import duckdb
+
+    df = duckdb.query("""
+with dedup_df as (
+    select
+        etl_utc_ts::date as extracted_date,
+        region_code,
+        instance_type,
+        any_value(spot_price) as spot_price
+    from df
+    group by 1, 2, 3
+)
+select 
+    extract (year from extracted_date) as extracted_year,
+    extract (month from extracted_date) as extracted_month,
+    region_code,
+    avg(spot_price) as avg_price,
+    max(spot_price) as max_price,
+    min(spot_price) as min_price
+from dedup_df
+group by 1, 2, 3
+""").to_df()
     return df
 
 
@@ -79,19 +106,30 @@ def read_price_history(prefix_path: Path) -> pd.DataFrame:
     return df
 
 
-def main():
-    utc_ts = datetime.datetime.now(datetime.timezone.utc)
+def extract_and_load(utc_ts: datetime.datetime) -> pd.DataFrame:
     data = extract_aws_spot_bid(SPOT_ADVISOR_DATA_URL)
-    prices_extracted = transform_dataset(
+    df = transform_dataset(
         data=data,
         region_list=REGION_LIST,
         etl_utc_ts=utc_ts,
     )
-    write_result(prices_extracted, Path("data") / "extracted", utc_ts)
-    # can we rewrite this in SQL?
-    prices_stats = calculate_price(read_price_history(Path("data") / "extracted"))
-    write_result(prices_stats, Path("data") / "stats", utc_ts)
+    write_result(df, Path("data") / "extracted", utc_ts)
+    return df
 
+
+def transform(utc_ts: datetime.datetime) -> pd.DataFrame:
+    df = read_price_history(Path("data") / "extracted")
+    # can we rewrite this in SQL?
+    df = calculate_price(df)
+    write_result(df, Path("data") / "stats", utc_ts)
+    return df
+
+
+def main():
+    utc_ts = datetime.datetime.now(datetime.timezone.utc)
+    extracted = extract_and_load(utc_ts)
+    stats = transform(utc_ts)
+    return extracted, stats
 
 if __name__ == "__main__":
     main()
